@@ -1,0 +1,179 @@
+local player = game.Players.LocalPlayer
+local boat = nil
+local searching = false
+local mirageIsland = nil
+local gearWaitTime = 120
+local maxSearchTime = 900
+local waypoints = {Vector3.new(0,0,0), Vector3.new(1000,0,1000), Vector3.new(-1000,0,-1000)}
+local stats = {miragesFound = 0, gearsCollected = 0}
+local log = {}
+
+-- 📌 Create GUI
+local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
+ScreenGui.Name = "MirageFinderGUI"
+
+-- Create menu containers (hidden by default)
+local homeMenu = Instance.new("Frame", ScreenGui)
+homeMenu.Size = UDim2.new(0, 400, 0, 300)
+homeMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
+homeMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+homeMenu.Visible = true
+
+local questsAndItemsMenu = Instance.new("Frame", ScreenGui)
+questsAndItemsMenu.Size = UDim2.new(0, 400, 0, 300)
+questsAndItemsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
+questsAndItemsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+questsAndItemsMenu.Visible = false
+
+local raidsAndFruitsMenu = Instance.new("Frame", ScreenGui)
+raidsAndFruitsMenu.Size = UDim2.new(0, 400, 0, 300)
+raidsAndFruitsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
+raidsAndFruitsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+raidsAndFruitsMenu.Visible = false
+
+local visualMenu = Instance.new("Frame", ScreenGui)
+visualMenu.Size = UDim2.new(0, 400, 0, 300)
+visualMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
+visualMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+visualMenu.Visible = false
+
+local optionsMenu = Instance.new("Frame", ScreenGui)
+optionsMenu.Size = UDim2.new(0, 400, 0, 300)
+optionsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
+optionsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+optionsMenu.Visible = false
+
+local seaEventsMenu = Instance.new("Frame", ScreenGui)
+seaEventsMenu.Size = UDim2.new(0, 400, 0, 300)
+seaEventsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
+seaEventsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+seaEventsMenu.Visible = false
+
+local raceV4Menu = Instance.new("Frame", ScreenGui)
+raceV4Menu.Size = UDim2.new(0, 400, 0, 300)
+raceV4Menu.Position = UDim2.new(0.5, -200, 0.5, -150)
+raceV4Menu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+raceV4Menu.Visible = false
+
+local islandsMenu = Instance.new("Frame", ScreenGui)
+islandsMenu.Size = UDim2.new(0, 400, 0, 300)
+islandsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
+islandsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+islandsMenu.Visible = false
+
+-- 📌 Title at the top right: "MXZ"
+local titleLabel = Instance.new("TextLabel", ScreenGui)
+titleLabel.Size = UDim2.new(0, 100, 0, 50)
+titleLabel.Position = UDim2.new(1, -110, 0, 10)  -- Positioned at the top right corner
+titleLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Text = "MXZ"
+titleLabel.TextScaled = true
+titleLabel.TextXAlignment = Enum.TextXAlignment.Right
+titleLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+-- 📌 Buttons to switch between menus
+local buttonHeight = 50  -- Height for each button, adjust as needed
+
+local homeButton = Instance.new("TextButton", ScreenGui)
+homeButton.Text = "Home"
+homeButton.Size = UDim2.new(0, 100, 0, buttonHeight)
+homeButton.Position = UDim2.new(0, 10, 0, 10)
+homeButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+
+local islandsButton = Instance.new("TextButton", ScreenGui)
+islandsButton.Text = "Islands"
+islandsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
+islandsButton.Position = UDim2.new(0, 10, 0, 10 + buttonHeight)
+islandsButton.BackgroundColor3 = Color3.fromRGB(200, 255, 100)
+
+local seaEventsButton = Instance.new("TextButton", ScreenGui)
+seaEventsButton.Text = "Sea Events"
+seaEventsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
+seaEventsButton.Position = UDim2.new(0, 10, 0, 10 + 2 * buttonHeight)
+seaEventsButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+
+local questsButton = Instance.new("TextButton", ScreenGui)
+questsButton.Text = "Quests & Items"
+questsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
+questsButton.Position = UDim2.new(0, 10, 0, 10 + 3 * buttonHeight)
+questsButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+
+local raceV4Button = Instance.new("TextButton", ScreenGui)
+raceV4Button.Text = "Race V4"
+raceV4Button.Size = UDim2.new(0, 100, 0, buttonHeight)
+raceV4Button.Position = UDim2.new(0, 10, 0, 10 + 4 * buttonHeight)
+raceV4Button.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+
+local raidsButton = Instance.new("TextButton", ScreenGui)
+raidsButton.Text = "Raids & Fruits"
+raidsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
+raidsButton.Position = UDim2.new(0, 10, 0, 10 + 5 * buttonHeight)
+raidsButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+
+local visualButton = Instance.new("TextButton", ScreenGui)
+visualButton.Text = "Visual"
+visualButton.Size = UDim2.new(0, 100, 0, buttonHeight)
+visualButton.Position = UDim2.new(0, 10, 0, 10 + 6 * buttonHeight)
+visualButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+
+local optionsButton = Instance.new("TextButton", ScreenGui)
+optionsButton.Text = "Options"
+optionsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
+optionsButton.Position = UDim2.new(0, 10, 0, 10 + 7 * buttonHeight)
+optionsButton.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
+
+-- 📌 Function to hide all menus
+local function hideAllMenus()
+    homeMenu.Visible = false
+    questsAndItemsMenu.Visible = false
+    raidsAndFruitsMenu.Visible = false
+    visualMenu.Visible = false
+    optionsMenu.Visible = false
+    seaEventsMenu.Visible = false
+    raceV4Menu.Visible = false
+    islandsMenu.Visible = false
+end
+
+-- 📌 Button actions to switch menus
+homeButton.MouseButton1Click:Connect(function()
+    hideAllMenus()
+    homeMenu.Visible = true
+end)
+
+islandsButton.MouseButton1Click:Connect(function()
+    hideAllMenus()
+    islandsMenu.Visible = true
+end)
+
+seaEventsButton.MouseButton1Click:Connect(function()
+    hideAllMenus()
+    seaEventsMenu.Visible = true
+end)
+
+questsButton.MouseButton1Click:Connect(function()
+    hideAllMenus()
+    questsAndItemsMenu.Visible = true
+end)
+
+raceV4Button.MouseButton1Click:Connect(function()
+    hideAllMenus()
+    raceV4Menu.Visible = true
+end)
+
+raidsButton.MouseButton1Click:Connect(function()
+    hideAllMenus()
+    raidsAndFruitsMenu.Visible = true
+end)
+
+visualButton.MouseButton1Click:Connect(function()
+    hideAllMenus()
+    visualMenu.Visible = true
+end)
+
+optionsButton.MouseButton1Click:Connect(function()
+    hideAllMenus()
+    optionsMenu.Visible = true
+end)
+
+-- 📌 Example of Sea Events menu functionality (for demonstration)
