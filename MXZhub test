@@ -1,179 +1,148 @@
 local player = game.Players.LocalPlayer
-local boat = nil
-local searching = false
-local mirageIsland = nil
-local gearWaitTime = 120
-local maxSearchTime = 900
-local waypoints = {Vector3.new(0,0,0), Vector3.new(1000,0,1000), Vector3.new(-1000,0,-1000)}
-local stats = {miragesFound = 0, gearsCollected = 0}
-local log = {}
+local homeMenu = Instance.new("ScreenGui", player.PlayerGui)
 
--- 📌 Create GUI
-local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
-ScreenGui.Name = "MirageFinderGUI"
+-- 🏠 Home Menu
+local homeFrame = Instance.new("Frame", homeMenu)
+homeFrame.Name = "HomeFrame"
+homeFrame.Visible = true
 
--- Create menu containers (hidden by default)
-local homeMenu = Instance.new("Frame", ScreenGui)
-homeMenu.Size = UDim2.new(0, 400, 0, 300)
-homeMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
-homeMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-homeMenu.Visible = true
+-- 🌍 Islands Menu
+local islandsFrame = Instance.new("Frame", homeMenu)
+islandsFrame.Name = "IslandsFrame"
+islandsFrame.Visible = false
 
-local questsAndItemsMenu = Instance.new("Frame", ScreenGui)
-questsAndItemsMenu.Size = UDim2.new(0, 400, 0, 300)
-questsAndItemsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
-questsAndItemsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-questsAndItemsMenu.Visible = false
+local islands = {
+    {name = "Starter Island", position = Vector3.new(100, 10, 100)},
+    {name = "Pirate Island", position = Vector3.new(500, 10, 300)},
+    {name = "Marine Fortress", position = Vector3.new(800, 10, 600)},
+    {name = "Sky Island", position = Vector3.new(1200, 200, 900)},
+    {name = "Kitsune Island", position = Vector3.new(1500, 10, 1200)}, -- 🆕 New
+    {name = "Prehistoric Island", position = Vector3.new(1800, 10, 1400)}, -- 🆕 New
+    {name = "Mirage Island", position = Vector3.new(2000, 10, 1600)} -- 🆕 New
+}
 
-local raidsAndFruitsMenu = Instance.new("Frame", ScreenGui)
-raidsAndFruitsMenu.Size = UDim2.new(0, 400, 0, 300)
-raidsAndFruitsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
-raidsAndFruitsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-raidsAndFruitsMenu.Visible = false
-
-local visualMenu = Instance.new("Frame", ScreenGui)
-visualMenu.Size = UDim2.new(0, 400, 0, 300)
-visualMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
-visualMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-visualMenu.Visible = false
-
-local optionsMenu = Instance.new("Frame", ScreenGui)
-optionsMenu.Size = UDim2.new(0, 400, 0, 300)
-optionsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
-optionsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-optionsMenu.Visible = false
-
-local seaEventsMenu = Instance.new("Frame", ScreenGui)
-seaEventsMenu.Size = UDim2.new(0, 400, 0, 300)
-seaEventsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
-seaEventsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-seaEventsMenu.Visible = false
-
-local raceV4Menu = Instance.new("Frame", ScreenGui)
-raceV4Menu.Size = UDim2.new(0, 400, 0, 300)
-raceV4Menu.Position = UDim2.new(0.5, -200, 0.5, -150)
-raceV4Menu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-raceV4Menu.Visible = false
-
-local islandsMenu = Instance.new("Frame", ScreenGui)
-islandsMenu.Size = UDim2.new(0, 400, 0, 300)
-islandsMenu.Position = UDim2.new(0.5, -200, 0.5, -150)
-islandsMenu.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-islandsMenu.Visible = false
-
--- 📌 Title at the top right: "MXZ"
-local titleLabel = Instance.new("TextLabel", ScreenGui)
-titleLabel.Size = UDim2.new(0, 100, 0, 50)
-titleLabel.Position = UDim2.new(1, -110, 0, 10)  -- Positioned at the top right corner
-titleLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.Text = "MXZ"
-titleLabel.TextScaled = true
-titleLabel.TextXAlignment = Enum.TextXAlignment.Right
-titleLabel.TextYAlignment = Enum.TextYAlignment.Top
-
--- 📌 Buttons to switch between menus
-local buttonHeight = 50  -- Height for each button, adjust as needed
-
-local homeButton = Instance.new("TextButton", ScreenGui)
-homeButton.Text = "Home"
-homeButton.Size = UDim2.new(0, 100, 0, buttonHeight)
-homeButton.Position = UDim2.new(0, 10, 0, 10)
-homeButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-
-local islandsButton = Instance.new("TextButton", ScreenGui)
-islandsButton.Text = "Islands"
-islandsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
-islandsButton.Position = UDim2.new(0, 10, 0, 10 + buttonHeight)
-islandsButton.BackgroundColor3 = Color3.fromRGB(200, 255, 100)
-
-local seaEventsButton = Instance.new("TextButton", ScreenGui)
-seaEventsButton.Text = "Sea Events"
-seaEventsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
-seaEventsButton.Position = UDim2.new(0, 10, 0, 10 + 2 * buttonHeight)
-seaEventsButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-
-local questsButton = Instance.new("TextButton", ScreenGui)
-questsButton.Text = "Quests & Items"
-questsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
-questsButton.Position = UDim2.new(0, 10, 0, 10 + 3 * buttonHeight)
-questsButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-
-local raceV4Button = Instance.new("TextButton", ScreenGui)
-raceV4Button.Text = "Race V4"
-raceV4Button.Size = UDim2.new(0, 100, 0, buttonHeight)
-raceV4Button.Position = UDim2.new(0, 10, 0, 10 + 4 * buttonHeight)
-raceV4Button.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-
-local raidsButton = Instance.new("TextButton", ScreenGui)
-raidsButton.Text = "Raids & Fruits"
-raidsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
-raidsButton.Position = UDim2.new(0, 10, 0, 10 + 5 * buttonHeight)
-raidsButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-
-local visualButton = Instance.new("TextButton", ScreenGui)
-visualButton.Text = "Visual"
-visualButton.Size = UDim2.new(0, 100, 0, buttonHeight)
-visualButton.Position = UDim2.new(0, 10, 0, 10 + 6 * buttonHeight)
-visualButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
-
-local optionsButton = Instance.new("TextButton", ScreenGui)
-optionsButton.Text = "Options"
-optionsButton.Size = UDim2.new(0, 100, 0, buttonHeight)
-optionsButton.Position = UDim2.new(0, 10, 0, 10 + 7 * buttonHeight)
-optionsButton.BackgroundColor3 = Color3.fromRGB(255, 0, 255)
-
--- 📌 Function to hide all menus
-local function hideAllMenus()
-    homeMenu.Visible = false
-    questsAndItemsMenu.Visible = false
-    raidsAndFruitsMenu.Visible = false
-    visualMenu.Visible = false
-    optionsMenu.Visible = false
-    seaEventsMenu.Visible = false
-    raceV4Menu.Visible = false
-    islandsMenu.Visible = false
+for _, island in ipairs(islands) do
+    local button = Instance.new("TextButton", islandsFrame)
+    button.Size = UDim2.new(0, 200, 0, 50)
+    button.Text = island.name
+    button.MouseButton1Click:Connect(function()
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(island.position)
+        print("Teleported to " .. island.name)
+    end)
 end
 
--- 📌 Button actions to switch menus
-homeButton.MouseButton1Click:Connect(function()
-    hideAllMenus()
-    homeMenu.Visible = true
-end)
+-- 🌊 Sea Events Menu
+local seaEventsFrame = Instance.new("Frame", homeMenu)
+seaEventsFrame.Name = "SeaEventsFrame"
+seaEventsFrame.Visible = false
 
-islandsButton.MouseButton1Click:Connect(function()
-    hideAllMenus()
-    islandsMenu.Visible = true
-end)
+local function findSeaEvents()
+    for _, event in pairs(workspace:GetChildren()) do
+        if event:IsA("Model") and event:FindFirstChild("SeaEvent") then
+            print("Sea Event Found:", event.Name)
+        end
+    end
+end
 
-seaEventsButton.MouseButton1Click:Connect(function()
-    hideAllMenus()
-    seaEventsMenu.Visible = true
-end)
+local function tpToSeaEvent()
+    for _, event in pairs(workspace:GetChildren()) do
+        if event:IsA("Model") and event:FindFirstChild("SeaEvent") then
+            player.Character.HumanoidRootPart.CFrame = event.PrimaryPart.CFrame
+            print("Teleported to Sea Event:", event.Name)
+            return
+        end
+    end
+    print("No Sea Event found!")
+end
 
-questsButton.MouseButton1Click:Connect(function()
-    hideAllMenus()
-    questsAndItemsMenu.Visible = true
-end)
+local function farmSeaBeasts()
+    for _, event in pairs(workspace:GetChildren()) do
+        if event:IsA("Model") and event:FindFirstChild("SeaBeast") then
+            player.Character.HumanoidRootPart.CFrame = event.SeaBeast.CFrame
+            print("Farming Sea Beast:", event.Name)
+        end
+    end
+end
 
-raceV4Button.MouseButton1Click:Connect(function()
-    hideAllMenus()
-    raceV4Menu.Visible = true
-end)
+local function farmShipRaid()
+    for _, event in pairs(workspace:GetChildren()) do
+        if event:IsA("Model") and event:FindFirstChild("ShipRaid") then
+            player.Character.HumanoidRootPart.CFrame = event.ShipRaid.CFrame
+            print("Farming Ship Raid:", event.Name)
+        end
+    end
+end
 
-raidsButton.MouseButton1Click:Connect(function()
-    hideAllMenus()
-    raidsAndFruitsMenu.Visible = true
-end)
+local function farmTerrorSharks()
+    for _, event in pairs(workspace:GetChildren()) do
+        if event:IsA("Model") and event:FindFirstChild("TerrorShark") then
+            player.Character.HumanoidRootPart.CFrame = event.TerrorShark.CFrame
+            print("Farming Terror Shark:", event.Name)
+        end
+    end
+end
 
-visualButton.MouseButton1Click:Connect(function()
-    hideAllMenus()
-    visualMenu.Visible = true
-end)
+local function farmPiranhas()
+    for _, event in pairs(workspace:GetChildren()) do
+        if event:IsA("Model") and event:FindFirstChild("Piranha") then
+            player.Character.HumanoidRootPart.CFrame = event.Piranha.CFrame
+            print("Farming Piranhas:", event.Name)
+        end
+    end
+end
 
-optionsButton.MouseButton1Click:Connect(function()
-    hideAllMenus()
-    optionsMenu.Visible = true
-end)
+local function farmGhostShip()
+    for _, event in pairs(workspace:GetChildren()) do
+        if event:IsA("Model") and event:FindFirstChild("GhostShip") then
+            player.Character.HumanoidRootPart.CFrame = event.GhostShip.CFrame
+            print("Farming Ghost Ship:", event.Name)
+        end
+    end
+end
 
--- 📌 Example of Sea Events menu functionality (for demonstration)
+local seaEvents = {
+    {name = "Find Sea Events", action = findSeaEvents},
+    {name = "TP to Sea Events", action = tpToSeaEvent},
+    {name = "Farm Sea Beasts", action = farmSeaBeasts},
+    {name = "Farm Ship Raid", action = farmShipRaid},
+    {name = "Farm Terror Sharks", action = farmTerrorSharks}, -- 🆕 New
+    {name = "Farm Piranhas", action = farmPiranhas}, -- 🆕 New
+    {name = "Farm Ghost Ship", action = farmGhostShip} -- 🆕 New
+}
+
+for _, event in ipairs(seaEvents) do
+    local button = Instance.new("TextButton", seaEventsFrame)
+    button.Size = UDim2.new(0, 200, 0, 50)
+    button.Text = event.name
+    button.MouseButton1Click:Connect(event.action)
+end
+
+-- 🏠 Home Buttons to Open Menus
+local function createHomeButton(name, menu)
+    local button = Instance.new("TextButton", homeFrame)
+    button.Size = UDim2.new(0, 200, 0, 50)
+    button.Text = name
+    button.MouseButton1Click:Connect(function()
+        homeFrame.Visible = false
+        menu.Visible = true
+    end)
+end
+
+createHomeButton("Islands", islandsFrame)
+createHomeButton("Sea Events", seaEventsFrame)
+
+-- 🔙 Back Buttons
+local function createBackButton(menu)
+    local backButton = Instance.new("TextButton", menu)
+    backButton.Size = UDim2.new(0, 200, 0, 50)
+    backButton.Text = "Back"
+    backButton.MouseButton1Click:Connect(function()
+        menu.Visible = false
+        homeFrame.Visible = true
+    end)
+end
+
+createBackButton(islandsFrame)
+createBackButton(seaEventsFrame)
+
+homeFrame.Visible = true
